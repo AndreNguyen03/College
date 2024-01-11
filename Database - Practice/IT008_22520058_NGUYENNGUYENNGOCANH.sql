@@ -1,0 +1,123 @@
+﻿-- Cau 1
+CREATE DATABASE QUANLYTHI
+
+USE QUANLYTHI
+
+CREATE TABLE SINHVIEN (
+	MSSV varchar(5) PRIMARY KEY NOT NULL,
+	HOSV nvarchar(20),
+	tensv nvarchar(10),
+	phai nvarchar(3),
+	malop varchar(5)
+);
+
+CREATE TABLE LOP (
+	malop varchar(5) primary key not null,
+	tenlop varchar(20),
+	siso int
+);
+
+CREATE TABLE MONHOC (
+	mamh varchar(5) primary key not null,
+	tenmon nvarchar(30),
+	sotinchi int
+);
+
+CREATE TABLE KETQUATHI (
+	mssv varchar(5) not null,
+	mamh varchar(5) not null,
+	diem float,
+	lanthi int
+	constraint pk primary key (mssv,mamh) 
+);
+
+alter table KETQUATHI ADD constraint R1 foreign key (MSSV) references SINHVIEN(MSSV);
+
+alter table KETQUATHI ADD constraint R2 foreign key (MAMH) references MONHOC(mamh);
+
+-- cau2 
+
+INSERT INTO LOP VALUES ('L0001','DH5TH1',4);
+INSERT INTO LOP VALUES ('L0002','DH5TH2',4);
+INSERT INTO LOP VALUES ('L0003','DH6TH1',4);
+
+INSERT INTO SINHVIEN VALUES ('SV001',N'Lê Thị',N'Hoa',N'Nữ','L0001');
+INSERT INTO SINHVIEN VALUES ('SV002',N'Trần Hồng',N'Tam',N'Nam','L0001');
+INSERT INTO SINHVIEN VALUES ('SV003',N'Hoàng Văn',N'Bình',N'Nam','L0001');
+INSERT INTO SINHVIEN VALUES ('SV004',N'Lý Bình',N'Nguyên',N'Nam','L0001');
+INSERT INTO SINHVIEN VALUES ('SV005',N'Mã',N'Văn',N'Nam','L0002');
+
+INSERT INTO KETQUATHI VALUES ('SV001','MH001',4,1);
+INSERT INTO KETQUATHI VALUES ('SV002','MH002',6,1);
+INSERT INTO KETQUATHI VALUES ('SV001','MH002',7,2);
+INSERT INTO KETQUATHI VALUES ('SV003','MH001',3.5,1);
+INSERT INTO KETQUATHI VALUES ('SV003','MH002',9,1);
+INSERT INTO KETQUATHI VALUES ('SV003','MH003',7,2);
+
+-- cau 3
+
+alter table ketquathi add constraint ck_diem check (DIEM BETWEEN 0 AND 10);
+alter table ketquathi add constraint ck_lanthi check (LANTHI <= 3 );
+
+-- CAU 4
+SELECT MSSV,HOSV ,TENSV
+FROM SINHVIEN SV, LOP L
+WHERE SV.PHAI ='Nam' AND SV.MALOP = 'L0001' AND SV.malop = L.malop
+
+
+-- cau5
+CREATE TRIGGER R3 ON SINHVIEN 
+FOR INSERT
+AS
+BEGIN
+
+		IF NOT EXISTS (
+			SELECT * FROM inserted I , LOP L
+			WHERE I.malop = L.malop
+		) 
+		BEGIN
+			ROLLBACK TRAN
+		END
+END
+
+
+
+
+-- cau6
+
+SELECT sv.MSSV, HOSV, TENSV,KQT.mamh ,KQT.DIEM
+FROM SINHVIEN SV, KETQUATHI KQT
+WHERE SV.MSSV = KQT.MSSV AND KQT.LANTHI = 2 ;
+
+-- CAU 7
+SELECT SV.MSSV, HOSV,TENSV
+FROM SINHVIEN SV, KETQUATHI KQT
+WHERE KQT.mamh = 'MH001' AND KQT.mssv = SV.MSSV
+INTERSECT
+SELECT SV.MSSV, HOSV,TENSV
+FROM SINHVIEN SV, KETQUATHI KQT
+WHERE KQT.mamh = 'MH002' AND KQT.mssv = SV.MSSV
+
+-- CAU 8
+SELECT SV.MSSV, HOSV, TENSV , MAX(DIEM) DIEM
+FROM SINHVIEN SV, KETQUATHI KQT
+WHERE SV.MSSV = KQT.MSSV AND KQT.LANTHI = 1
+GROUP BY SV.MSSV, HOSV, TENSV
+
+-- CAU 9
+SELECT KQT.mamh ,MH.tenmon , COUNT(KQT.MSSV) SOLUONGSV
+FROM KETQUATHI KQT , MONHOC MH
+WHERE KQT.mamh = MH.mamh
+GROUP BY KQT.MAMH ,MH.tenmon 
+
+--CAU 10
+SELECT SV.MSSV,HOSV,TENSV
+FROM SINHVIEN SV
+WHERE NOT EXISTS ( 
+	SELECT * 
+	FROM MONHOC MH
+	WHERE NOT EXISTS (
+		SELECT * FROM KETQUATHI KQT
+		WHERE SV.MSSV = KQT.mssv AND KQT.mamh = MH.mamh
+	)
+)
